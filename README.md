@@ -19,19 +19,19 @@ This project starts from that working baseline and progressively introduces more
 ```text
 local_rag_project
 RAG From Scratch
-        |
-        | stable baseline
-        v
+        │
+        │ stable baseline
+        ▼
 advanced_rag_project
 Advanced RAG Engineering
-        |
-        +-- Persistent Vector Storage
-        +-- Advanced Retrieval
-        +-- Metadata Filtering
-        +-- Hybrid Search
-        +-- Reranking
-        +-- Query Transformation
-        +-- Grounded Generation
-        +-- RAG Evaluation
-        +-- API Layer
-        +-- Observability & Deployment
+        │
+        ├── Persistent Vector Storage
+        ├── Advanced Retrieval
+        ├── Metadata Filtering
+        ├── Hybrid Search
+        ├── Reranking
+        ├── Query Transformation
+        ├── Grounded Generation
+        ├── RAG Evaluation
+        ├── API Layer
+        └── Observability & Deployment

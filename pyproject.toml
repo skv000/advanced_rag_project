@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "chromadb>=1.5.9",
     "numpy>=2.5.3",
     "ollama>=0.6.2",
     "sentence-transformers>=6.0.1",
