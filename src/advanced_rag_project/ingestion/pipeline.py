@@ -28,8 +28,18 @@ class IngestionPipeline:
         chunk_overlap=50,
     ) -> None:
         """
-        Load, hash, check for duplicates, chunk, embed,
-        and store a document.
+        Load, hash, detect document state, and ingest the document.
+
+        Document states:
+
+        NEW:
+            Document does not exist.
+
+        UNCHANGED:
+            Document exists and content hash matches.
+
+        MODIFIED:
+            Document exists but content hash changed.
         """
 
         path = Path(file_path)
@@ -43,7 +53,7 @@ class IngestionPipeline:
         text = load_text_file(str(path))
 
         # --------------------------------------------------
-        # 2. Create document ID
+        # 2. Identify document
         # --------------------------------------------------
 
         document_id = create_document_id(str(path))
@@ -58,16 +68,44 @@ class IngestionPipeline:
         print(f"Content Hash: {content_hash}")
 
         # --------------------------------------------------
-        # 4. Check for duplicate document
+        # 4. Check existing document
         # --------------------------------------------------
 
-        if self.vector_store.document_exists(content_hash):
-            print("\nDocument already exists in ChromaDB.")
+        stored_hash = self.vector_store.get_document_hash(
+            document_id
+        )
+
+        # --------------------------------------------------
+        # 5. NEW document
+        # --------------------------------------------------
+
+        if stored_hash is None:
+            print("\nDocument status: NEW")
+
+        # --------------------------------------------------
+        # 6. UNCHANGED document
+        # --------------------------------------------------
+
+        elif stored_hash == content_hash:
+            print("\nDocument status: UNCHANGED")
+            print("Document already exists in ChromaDB.")
             print("Skipping ingestion.")
             return
 
         # --------------------------------------------------
-        # 5. Chunk document
+        # 7. MODIFIED document
+        # --------------------------------------------------
+
+        else:
+            print("\nDocument status: MODIFIED")
+            print("Removing previous document chunks...")
+
+            self.vector_store.delete_document(
+                document_id=document_id
+            )
+
+        # --------------------------------------------------
+        # 8. Chunk document
         # --------------------------------------------------
 
         chunks = chunk_text(
@@ -80,7 +118,7 @@ class IngestionPipeline:
         print(f"Created {len(chunks)} chunks.")
 
         # --------------------------------------------------
-        # 6. Generate embeddings
+        # 9. Generate embeddings
         # --------------------------------------------------
 
         embeddings = self.embedder.embed_texts(
@@ -88,7 +126,7 @@ class IngestionPipeline:
         )
 
         # --------------------------------------------------
-        # 7. Store in ChromaDB
+        # 10. Store document
         # --------------------------------------------------
 
         print("Adding chunks to ChromaDB...")
