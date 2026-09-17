@@ -60,3 +60,18 @@ class ChromaVectorStore:
             query_embeddings=[query_embedding],
             n_results=top_k,
         )
+
+    def document_exists(self, content_hash: str) -> bool:
+        """
+        Check whether a document with the given content hash
+        already exists in ChromaDB.
+        """
+
+        results = self.collection.get(
+            where={
+                "content_hash": content_hash
+            },
+            limit=1,
+        )
+
+        return len(results["ids"]) > 0
