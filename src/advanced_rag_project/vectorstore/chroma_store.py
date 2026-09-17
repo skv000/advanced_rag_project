@@ -97,3 +97,14 @@ class ChromaVectorStore:
             return None
 
         return results["metadatas"][0]["content_hash"]
+
+    def delete_document(self, document_id: str) -> None:
+        """
+        Delete all chunks belonging to a document.
+        """
+
+        self.collection.delete(
+            where={
+                "document_id": document_id
+            }
+        )
