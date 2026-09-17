@@ -1,7 +1,5 @@
-from advanced_rag_project.documents.loader import load_text_file
-from advanced_rag_project.documents.chunker import chunk_text
-from advanced_rag_project.retrieval.retriever import Retriever
-from advanced_rag_project.rag.context_builder  import build_context
+from advanced_rag_project.retrieval.chroma_retriever import ChromaRetriever
+from advanced_rag_project.rag.context_builder import build_context
 from advanced_rag_project.rag.prompt_builder import build_rag_prompt
 from advanced_rag_project.routing.router import is_rag_question
 from advanced_rag_project.llm.ollama_client import (
@@ -9,32 +7,21 @@ from advanced_rag_project.llm.ollama_client import (
     stream_chat,
 )
 
+
 def main():
 
     print("=" * 50)
     print("Advanced RAG Project")
     print("=" * 50)
 
-    # Load Document
+    # Connect to persistent ChromaDB
 
-    document = load_text_file(
-        "data/documents/hindu_philosophy.txt"
+    retriever = ChromaRetriever(
+        persist_directory="data/chroma",
+        collection_name="rag_documents",
     )
 
-    # Create chunks
-
-    chunks = chunk_text(
-        text=document,
-        chunk_size=200,
-        chunk_overlap=30,
-        source="hindu_philosophy.txt",
-    )
-
-    print(f"Loaded document with {len(chunks)} chunks.")
-
-    # Create retriever
-
-    retriever = Retriever(chunks=chunks)
+    print("Connected to persistent ChromaDB.")
 
     # Start Conversation
 
@@ -49,7 +36,7 @@ def main():
 
         question = input("\nYOU : ")
 
-        if question.lower() in {'exit','quit', 'q'}:
+        if question.lower() in {"exit", "quit", "q"}:
             print("\nAI : GoodBye, See you later!")
             break
 
@@ -86,6 +73,7 @@ def main():
             ]
 
         else:
+
             messages.append(
                 {
                     "role": "user",
@@ -126,5 +114,5 @@ def main():
         )
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
