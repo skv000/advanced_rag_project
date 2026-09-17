@@ -123,10 +123,6 @@ class IngestionPipeline:
 
                 return "duplicate"
 
-            # ----------------------------------------------
-            # New document
-            # ----------------------------------------------
-
             document_status = "new"
 
         # --------------------------------------------------
@@ -381,15 +377,19 @@ class IngestionPipeline:
                 )
 
                 if status == "new":
+
                     stats.new += 1
 
                 elif status == "unchanged":
+
                     stats.unchanged += 1
 
                 elif status == "modified":
+
                     stats.modified += 1
 
                 elif status == "duplicate":
+
                     stats.duplicates += 1
 
                 else:
@@ -409,10 +409,8 @@ class IngestionPipeline:
                 )
 
         # --------------------------------------------------
-        # Print summary
+        # Finish
         # --------------------------------------------------
-
-        stats.print_summary()
 
         print(
             "\n" + "=" * 60

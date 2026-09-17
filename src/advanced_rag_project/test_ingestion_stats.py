@@ -15,6 +15,56 @@ TEST_CHROMA = (
 )
 
 
+def print_stats(stats):
+    """
+    Display ingestion statistics from outside
+    the IngestionStats data model.
+    """
+
+    print("\n")
+    print("=" * 60)
+    print("INGESTION SUMMARY")
+    print("=" * 60)
+
+    print(
+        f"Documents scanned : {stats.scanned}"
+    )
+
+    print(
+        f"New               : {stats.new}"
+    )
+
+    print(
+        f"Unchanged         : {stats.unchanged}"
+    )
+
+    print(
+        f"Modified          : {stats.modified}"
+    )
+
+    print(
+        f"Deleted           : {stats.deleted}"
+    )
+
+    print(
+        f"Duplicates        : {stats.duplicates}"
+    )
+
+    print(
+        f"Failed            : {stats.failed}"
+    )
+
+    print(
+        f"Total processed   : {stats.total_processed}"
+    )
+
+    print(
+        f"Has errors        : {stats.has_errors}"
+    )
+
+    print("=" * 60)
+
+
 def main():
 
     # --------------------------------------------------
@@ -103,20 +153,29 @@ def main():
         directory=str(TEST_DIRECTORY)
     )
 
-    print("\nInitial statistics:")
-
-    print(first_stats)
+    print_stats(first_stats)
 
     # --------------------------------------------------
     # Verify initial state
     # --------------------------------------------------
 
+    assert first_stats.scanned == 3
+
     assert first_stats.new == 3
+
     assert first_stats.unchanged == 0
+
     assert first_stats.modified == 0
+
     assert first_stats.deleted == 0
+
     assert first_stats.duplicates == 0
+
     assert first_stats.failed == 0
+
+    assert first_stats.total_processed == 3
+
+    assert first_stats.has_errors is False
 
     # --------------------------------------------------
     # Add a new file
@@ -168,9 +227,7 @@ The content has changed.
         directory=str(TEST_DIRECTORY)
     )
 
-    print("\nSecond statistics:")
-
-    print(second_stats)
+    print_stats(second_stats)
 
     # --------------------------------------------------
     # Verify statistics
@@ -189,6 +246,30 @@ The content has changed.
     assert second_stats.duplicates == 1
 
     assert second_stats.failed == 0
+
+    assert second_stats.total_processed == 4
+
+    assert second_stats.has_errors is False
+
+    # --------------------------------------------------
+    # Verify dictionary conversion
+    # --------------------------------------------------
+
+    stats_dict = second_stats.to_dict()
+
+    assert stats_dict["scanned"] == 4
+
+    assert stats_dict["new"] == 1
+
+    assert stats_dict["unchanged"] == 1
+
+    assert stats_dict["modified"] == 1
+
+    assert stats_dict["deleted"] == 1
+
+    assert stats_dict["duplicates"] == 1
+
+    assert stats_dict["failed"] == 0
 
     # --------------------------------------------------
     # Cleanup filesystem test data

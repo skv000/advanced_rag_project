@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 
 @dataclass
@@ -15,42 +15,41 @@ class IngestionStats:
     duplicates: int = 0
     failed: int = 0
 
-    def print_summary(self) -> None:
+    @property
+    def total_processed(self) -> int:
         """
-        Print a human-readable ingestion summary.
+        Return the total number of documents that
+        received an ingestion decision.
+
+        This includes:
+
+        - new
+        - unchanged
+        - modified
+        - duplicates
+        - failed
         """
 
-        print("\n")
-        print("=" * 60)
-        print("INGESTION SUMMARY")
-        print("=" * 60)
-
-        print(
-            f"Documents scanned : {self.scanned}"
+        return (
+            self.new
+            + self.unchanged
+            + self.modified
+            + self.duplicates
+            + self.failed
         )
 
-        print(
-            f"New               : {self.new}"
-        )
+    @property
+    def has_errors(self) -> bool:
+        """
+        Return True if one or more documents failed
+        during ingestion.
+        """
 
-        print(
-            f"Unchanged         : {self.unchanged}"
-        )
+        return self.failed > 0
 
-        print(
-            f"Modified          : {self.modified}"
-        )
+    def to_dict(self) -> dict[str, int]:
+        """
+        Convert the statistics object into a dictionary.
+        """
 
-        print(
-            f"Deleted           : {self.deleted}"
-        )
-
-        print(
-            f"Duplicates        : {self.duplicates}"
-        )
-
-        print(
-            f"Failed            : {self.failed}"
-        )
-
-        print("=" * 60)
+        return asdict(self)
