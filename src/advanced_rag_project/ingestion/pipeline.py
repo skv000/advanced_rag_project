@@ -40,61 +40,50 @@ class IngestionPipeline:
 
         MODIFIED:
             Document exists but content hash changed.
+
+        DUPLICATE:
+            Another document already contains the same content.
         """
 
         path = Path(file_path)
 
         print(f"\nLoading: {path}")
 
-        # --------------------------------------------------
-        # 1. Load document
-        # --------------------------------------------------
-
         text = load_text_file(str(path))
 
-        # --------------------------------------------------
-        # 2. Identify document
-        # --------------------------------------------------
-
         document_id = create_document_id(str(path))
-
-        # --------------------------------------------------
-        # 3. Calculate content hash
-        # --------------------------------------------------
-
         content_hash = calculate_content_hash(text)
 
         print(f"Document ID: {document_id}")
         print(f"Content Hash: {content_hash}")
 
         # --------------------------------------------------
-        # 4. Check existing document
+        # Check whether this exact document already exists
         # --------------------------------------------------
 
         stored_hash = self.vector_store.get_document_hash(
             document_id
         )
 
-        # --------------------------------------------------
-        # 5. NEW document
-        # --------------------------------------------------
-
         if stored_hash is None:
             print("\nDocument status: NEW")
 
-        # --------------------------------------------------
-        # 6. UNCHANGED document
-        # --------------------------------------------------
+            # ----------------------------------------------
+            # Check whether another document has same content
+            # ----------------------------------------------
+
+            if self.vector_store.document_exists(
+                content_hash
+            ):
+                print("Duplicate content detected.")
+                print("Skipping ingestion.")
+                return
 
         elif stored_hash == content_hash:
             print("\nDocument status: UNCHANGED")
             print("Document already exists in ChromaDB.")
             print("Skipping ingestion.")
             return
-
-        # --------------------------------------------------
-        # 7. MODIFIED document
-        # --------------------------------------------------
 
         else:
             print("\nDocument status: MODIFIED")
@@ -105,7 +94,7 @@ class IngestionPipeline:
             )
 
         # --------------------------------------------------
-        # 8. Chunk document
+        # Chunk document
         # --------------------------------------------------
 
         chunks = chunk_text(
@@ -118,7 +107,7 @@ class IngestionPipeline:
         print(f"Created {len(chunks)} chunks.")
 
         # --------------------------------------------------
-        # 9. Generate embeddings
+        # Generate embeddings
         # --------------------------------------------------
 
         embeddings = self.embedder.embed_texts(
@@ -126,7 +115,7 @@ class IngestionPipeline:
         )
 
         # --------------------------------------------------
-        # 10. Store document
+        # Store in ChromaDB
         # --------------------------------------------------
 
         print("Adding chunks to ChromaDB...")
@@ -139,3 +128,51 @@ class IngestionPipeline:
         )
 
         print("Ingestion complete.")
+
+    def ingest_directory(
+        self,
+        directory: str,
+        chunk_size=500,
+        chunk_overlap=50,
+    ) -> None:
+        """
+        Incrementally ingest all .txt documents in a directory.
+        """
+
+        directory_path = Path(directory)
+
+        if not directory_path.exists():
+            raise FileNotFoundError(
+                f"Directory does not exist: {directory_path}"
+            )
+
+        if not directory_path.is_dir():
+            raise NotADirectoryError(
+                f"Path is not a directory: {directory_path}"
+            )
+
+        files = sorted(
+            directory_path.glob("*.txt")
+        )
+
+        print("=" * 60)
+        print("DIRECTORY INGESTION")
+        print("=" * 60)
+
+        print(f"Directory: {directory_path}")
+        print(f"Documents found: {len(files)}")
+
+        if not files:
+            print("\nNo .txt documents found.")
+            return
+
+        for file_path in files:
+            self.ingest_file(
+                file_path=str(file_path),
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+            )
+
+        print("\n" + "=" * 60)
+        print("DIRECTORY INGESTION COMPLETE")
+        print("=" * 60)
