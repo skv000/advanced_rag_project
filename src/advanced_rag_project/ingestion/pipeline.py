@@ -1,12 +1,25 @@
 from pathlib import Path
 
 from advanced_rag_project.documents.chunker import chunk_text
-from advanced_rag_project.documents.hashing import calculate_content_hash
-from advanced_rag_project.documents.identifiers import create_document_id
-from advanced_rag_project.documents.loader import load_text_file
+from advanced_rag_project.documents.file_types import (
+    is_supported_file,
+)
+from advanced_rag_project.documents.hashing import (
+    calculate_content_hash,
+)
+from advanced_rag_project.documents.identifiers import (
+    create_document_id,
+)
+from advanced_rag_project.documents.loader import (
+    load_text_file,
+)
 from advanced_rag_project.embeddings.embedder import Embedder
-from advanced_rag_project.ingestion.results import IngestionStats
-from advanced_rag_project.vectorstore.chroma_store import ChromaVectorStore
+from advanced_rag_project.ingestion.results import (
+    IngestionStats,
+)
+from advanced_rag_project.vectorstore.chroma_store import (
+    ChromaVectorStore,
+)
 
 
 class IngestionPipeline:
@@ -219,8 +232,11 @@ class IngestionPipeline:
         chunk_overlap=50,
     ) -> IngestionStats:
         """
-        Incrementally synchronize all .txt documents
+        Incrementally synchronize supported documents
         in a directory with ChromaDB.
+
+        Supported files are controlled by
+        SUPPORTED_EXTENSIONS.
 
         Handles:
 
@@ -267,12 +283,34 @@ class IngestionPipeline:
             )
 
         # --------------------------------------------------
-        # Find .txt files
+        # Find all files
         # --------------------------------------------------
 
-        files = sorted(
-            directory_path.glob("*.txt")
+        all_files = sorted(
+            path
+            for path in directory_path.iterdir()
+            if path.is_file()
         )
+
+        # --------------------------------------------------
+        # Filter supported files
+        # --------------------------------------------------
+
+        files = [
+            file_path
+            for file_path in all_files
+            if is_supported_file(file_path)
+        ]
+
+        # --------------------------------------------------
+        # Display ignored files
+        # --------------------------------------------------
+
+        ignored_files = [
+            file_path
+            for file_path in all_files
+            if not is_supported_file(file_path)
+        ]
 
         stats = IngestionStats(
             scanned=len(files)
@@ -295,11 +333,28 @@ class IngestionPipeline:
         )
 
         print(
-            f"Documents found: {len(files)}"
+            f"Supported documents found: {len(files)}"
         )
 
+        print(
+            f"Unsupported files ignored: "
+            f"{len(ignored_files)}"
+        )
+
+        if ignored_files:
+
+            print(
+                "\nIgnored files:"
+            )
+
+            for file_path in ignored_files:
+
+                print(
+                    f"  - {file_path.name}"
+                )
+
         # --------------------------------------------------
-        # Create document IDs for files on disk
+        # Create document IDs for supported files
         # --------------------------------------------------
 
         filesystem_document_ids = {
@@ -357,13 +412,13 @@ class IngestionPipeline:
             )
 
         # --------------------------------------------------
-        # Process documents currently on disk
+        # Process supported documents
         # --------------------------------------------------
 
         if not files:
 
             print(
-                "\nNo .txt documents found."
+                "\nNo supported documents found."
             )
 
         for file_path in files:

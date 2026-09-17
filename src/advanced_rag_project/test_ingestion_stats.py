@@ -17,8 +17,7 @@ TEST_CHROMA = (
 
 def print_stats(stats):
     """
-    Display ingestion statistics from outside
-    the IngestionStats data model.
+    Display ingestion statistics.
     """
 
     print("\n")
@@ -55,11 +54,13 @@ def print_stats(stats):
     )
 
     print(
-        f"Total processed   : {stats.total_processed}"
+        f"Total processed   : "
+        f"{stats.total_processed}"
     )
 
     print(
-        f"Has errors        : {stats.has_errors}"
+        f"Has errors        : "
+        f"{stats.has_errors}"
     )
 
     print("=" * 60)
@@ -116,6 +117,11 @@ def main():
         TEST_DIRECTORY / "deleted.txt"
     )
 
+    # Unsupported file
+    unsupported_file = (
+        TEST_DIRECTORY / "unsupported.pdf"
+    )
+
     unchanged_file.write_text(
         "This is an unchanged document.",
         encoding="utf-8",
@@ -128,6 +134,13 @@ def main():
 
     deleted_file.write_text(
         "This document will be deleted.",
+        encoding="utf-8",
+    )
+
+    # The contents don't need to be a real PDF.
+    # It only exists to test extension filtering.
+    unsupported_file.write_text(
+        "This file should never be ingested.",
         encoding="utf-8",
     )
 
@@ -176,6 +189,12 @@ def main():
     assert first_stats.total_processed == 3
 
     assert first_stats.has_errors is False
+
+    # --------------------------------------------------
+    # Verify unsupported file was ignored
+    # --------------------------------------------------
+
+    assert unsupported_file.exists()
 
     # --------------------------------------------------
     # Add a new file
