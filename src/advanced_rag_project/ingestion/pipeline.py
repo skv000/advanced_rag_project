@@ -1,9 +1,14 @@
 from pathlib import Path
 
 from advanced_rag_project.documents.chunker import chunk_text
+from advanced_rag_project.documents.identifiers import (
+    create_document_id,
+)
 from advanced_rag_project.documents.loader import load_text_file
 from advanced_rag_project.embeddings.embedder import Embedder
-from advanced_rag_project.vectorstore.chroma_store import ChromaVectorStore
+from advanced_rag_project.vectorstore.chroma_store import (
+    ChromaVectorStore,
+)
 
 
 class IngestionPipeline:
@@ -32,6 +37,12 @@ class IngestionPipeline:
 
         text = load_text_file(str(path))
 
+        document_id = create_document_id(
+            str(path)
+        )
+
+        print(f"Document ID: {document_id}")
+
         chunks = chunk_text(
             text,
             chunk_size=chunk_size,
@@ -50,6 +61,7 @@ class IngestionPipeline:
         self.vector_store.add_chunks(
             chunks=chunks,
             embeddings=embeddings,
+            document_id=document_id,
         )
 
         print("Ingestion complete.")

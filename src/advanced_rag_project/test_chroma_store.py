@@ -1,6 +1,9 @@
 from advanced_rag_project.documents.models import Chunk
 from advanced_rag_project.embeddings.embedder import Embedder
-from advanced_rag_project.vectorstore.chroma_store import ChromaVectorStore
+from advanced_rag_project.vectorstore.chroma_store import (
+    ChromaVectorStore,
+)
+
 
 def main():
     chunks = [
@@ -34,10 +37,11 @@ def main():
 
     store.add_chunks(
         chunks=chunks,
-        embeddings=embeddings
+        embeddings=embeddings,
+        document_id="test_document",
     )
 
-    query = "How does the retrieval augmented generation work?"
+    query = "How does retrieval augmented generation work?"
 
     query_embedding = embedder.embed_text(query)
 
@@ -49,5 +53,6 @@ def main():
     print("\nSearch Results:")
     print(results)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()

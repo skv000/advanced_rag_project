@@ -21,13 +21,22 @@ class ChromaVectorStore:
         self,
         chunks: list[Chunk],
         embeddings: list[list[float]],
+        document_id: str,
     ) -> None:
+
         self.collection.add(
-            ids=[str(chunk.chunk_id) for chunk in chunks],
+            ids=[
+                f"{document_id}:{chunk.chunk_id}"
+                for chunk in chunks
+            ],
             embeddings=embeddings,
-            documents=[chunk.text for chunk in chunks],
+            documents=[
+                chunk.text
+                for chunk in chunks
+            ],
             metadatas=[
                 {
+                    "document_id": document_id,
                     "chunk_id": chunk.chunk_id,
                     "source": chunk.source,
                 }
@@ -40,6 +49,7 @@ class ChromaVectorStore:
         query_embedding: list[float],
         top_k: int = 3,
     ) -> dict:
+
         return self.collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,
