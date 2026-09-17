@@ -5,6 +5,7 @@ from advanced_rag_project.documents.hashing import calculate_content_hash
 from advanced_rag_project.documents.identifiers import create_document_id
 from advanced_rag_project.documents.loader import load_text_file
 from advanced_rag_project.embeddings.embedder import Embedder
+from advanced_rag_project.ingestion.results import IngestionStats
 from advanced_rag_project.vectorstore.chroma_store import ChromaVectorStore
 
 
@@ -26,25 +27,26 @@ class IngestionPipeline:
         file_path: str,
         chunk_size=500,
         chunk_overlap=50,
-    ) -> None:
+    ) -> str:
         """
         Load, hash, detect document state, and ingest
         the document.
 
-        Document states:
+        Returns:
 
-        NEW:
-            Document does not exist.
+            "new"
+                Document was newly ingested.
 
-        UNCHANGED:
-            Document exists and content hash matches.
+            "unchanged"
+                Document already exists and content
+                has not changed.
 
-        MODIFIED:
-            Document exists but content hash changed.
+            "modified"
+                Document was modified and replaced.
 
-        DUPLICATE:
-            Another document already contains the
-            same content.
+            "duplicate"
+                Document content already exists under
+                another document.
         """
 
         path = Path(file_path)
@@ -104,7 +106,7 @@ class IngestionPipeline:
             )
 
             # ----------------------------------------------
-            # Check for duplicate content
+            # Check duplicate content
             # ----------------------------------------------
 
             if self.vector_store.document_exists(
@@ -119,7 +121,13 @@ class IngestionPipeline:
                     "Skipping ingestion."
                 )
 
-                return
+                return "duplicate"
+
+            # ----------------------------------------------
+            # New document
+            # ----------------------------------------------
+
+            document_status = "new"
 
         # --------------------------------------------------
         # UNCHANGED DOCUMENT
@@ -139,7 +147,7 @@ class IngestionPipeline:
                 "Skipping ingestion."
             )
 
-            return
+            return "unchanged"
 
         # --------------------------------------------------
         # MODIFIED DOCUMENT
@@ -158,6 +166,8 @@ class IngestionPipeline:
             self.vector_store.delete_document(
                 document_id=document_id
             )
+
+            document_status = "modified"
 
         # --------------------------------------------------
         # Chunk document
@@ -204,12 +214,14 @@ class IngestionPipeline:
             "Ingestion complete."
         )
 
+        return document_status
+
     def ingest_directory(
         self,
         directory: str,
         chunk_size=500,
         chunk_overlap=50,
-    ) -> None:
+    ) -> IngestionStats:
         """
         Incrementally synchronize all .txt documents
         in a directory with ChromaDB.
@@ -230,6 +242,10 @@ class IngestionPipeline:
         DELETED:
             Document exists in ChromaDB but no longer
             exists in the filesystem.
+
+        DUPLICATE:
+            Document contains content already stored
+            under another document.
         """
 
         directory_path = Path(
@@ -260,6 +276,10 @@ class IngestionPipeline:
 
         files = sorted(
             directory_path.glob("*.txt")
+        )
+
+        stats = IngestionStats(
+            scanned=len(files)
         )
 
         print(
@@ -303,10 +323,6 @@ class IngestionPipeline:
 
         # --------------------------------------------------
         # Detect deleted documents
-        #
-        # Stored IDs - Filesystem IDs
-        #
-        # Anything remaining was deleted from disk.
         # --------------------------------------------------
 
         deleted_document_ids = (
@@ -336,9 +352,7 @@ class IngestionPipeline:
                     "    Removed from ChromaDB."
                 )
 
-        # --------------------------------------------------
-        # No deleted documents
-        # --------------------------------------------------
+                stats.deleted += 1
 
         else:
 
@@ -358,15 +372,47 @@ class IngestionPipeline:
 
         for file_path in files:
 
-            self.ingest_file(
-                file_path=str(file_path),
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
-            )
+            try:
+
+                status = self.ingest_file(
+                    file_path=str(file_path),
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap,
+                )
+
+                if status == "new":
+                    stats.new += 1
+
+                elif status == "unchanged":
+                    stats.unchanged += 1
+
+                elif status == "modified":
+                    stats.modified += 1
+
+                elif status == "duplicate":
+                    stats.duplicates += 1
+
+                else:
+
+                    print(
+                        f"Unknown ingestion status: "
+                        f"{status}"
+                    )
+
+            except Exception as exc:
+
+                stats.failed += 1
+
+                print(
+                    f"\nFailed to ingest "
+                    f"{file_path}: {exc}"
+                )
 
         # --------------------------------------------------
-        # Finished
+        # Print summary
         # --------------------------------------------------
+
+        stats.print_summary()
 
         print(
             "\n" + "=" * 60
@@ -379,3 +425,5 @@ class IngestionPipeline:
         print(
             "=" * 60
         )
+
+        return stats
