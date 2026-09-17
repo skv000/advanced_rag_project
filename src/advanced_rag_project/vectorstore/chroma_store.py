@@ -19,49 +19,60 @@ class ChromaVectorStore:
 
     def add_chunks(
         self,
-        chunks: list[Chunk],
-        embeddings: list[list[float]],
+        chunks,
+        embeddings,
         document_id: str,
         content_hash: str,
-    ) -> None:
+        file_type: str | None = None,
+        file_size: int | None = None,
+        modified_time: float | None = None,
+    ):
         """
-        Add document chunks and their embeddings to ChromaDB.
+        Add document chunks and metadata to ChromaDB.
         """
+
+        ids = [
+            f"{document_id}:{chunk.chunk_id}"
+            for chunk in chunks
+        ]
+
+        documents = [
+            chunk.text
+            for chunk in chunks
+        ]
+
+        metadatas = [
+            {
+                "document_id": document_id,
+                "content_hash": content_hash,
+                "chunk_id": chunk.chunk_id,
+                "source": chunk.source,
+                "file_type": file_type or "",
+                "file_size": file_size or 0,
+                "modified_time": modified_time or 0.0,
+            }
+            for chunk in chunks
+        ]
 
         self.collection.add(
-            ids=[
-                f"{document_id}:{chunk.chunk_id}"
-                for chunk in chunks
-            ],
+            ids=ids,
+            documents=documents,
             embeddings=embeddings,
-            documents=[
-                chunk.text
-                for chunk in chunks
-            ],
-            metadatas=[
-                {
-                    "document_id": document_id,
-                    "content_hash": content_hash,
-                    "chunk_id": chunk.chunk_id,
-                    "source": chunk.source,
-                }
-                for chunk in chunks
-            ],
+            metadatas=metadatas,
         )
+        def search(
+            self,
+            query_embedding: list[float],
+            top_k: int = 3,
+        ) -> dict:
+            """
+            Search ChromaDB using a query embedding.
+            """
 
-    def search(
-        self,
-        query_embedding: list[float],
-        top_k: int = 3,
-    ) -> dict:
-        """
-        Search ChromaDB using a query embedding.
-        """
-
-        return self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k,
-        )
+            return self.collection.query(
+                query_embeddings=[query_embedding],
+                n_results=top_k,
+            )
 
     def document_exists(
         self,

@@ -4,14 +4,11 @@ from advanced_rag_project.documents.chunker import chunk_text
 from advanced_rag_project.documents.file_types import (
     is_supported_file,
 )
-from advanced_rag_project.documents.hashing import (
-    calculate_content_hash,
-)
 from advanced_rag_project.documents.identifiers import (
     create_document_id,
 )
 from advanced_rag_project.documents.loader import (
-    load_text_file,
+    load_document,
 )
 from advanced_rag_project.embeddings.embedder import Embedder
 from advanced_rag_project.ingestion.results import (
@@ -23,6 +20,7 @@ from advanced_rag_project.vectorstore.chroma_store import (
 
 
 class IngestionPipeline:
+
     def __init__(
         self,
         persist_directory="data/chroma",
@@ -42,8 +40,8 @@ class IngestionPipeline:
         chunk_overlap=50,
     ) -> str:
         """
-        Load, hash, detect document state, and ingest
-        the document.
+        Load, validate, hash, detect document state,
+        chunk, embed, and store a document.
 
         Returns:
 
@@ -67,28 +65,22 @@ class IngestionPipeline:
         print(f"\nLoading: {path}")
 
         # --------------------------------------------------
+        # Validate file type
+        # --------------------------------------------------
+
+        if not is_supported_file(path):
+            raise ValueError(
+                f"Unsupported file type: {path.suffix}"
+            )
+
+        # --------------------------------------------------
         # Load document
         # --------------------------------------------------
 
-        text = load_text_file(
-            str(path)
-        )
+        document = load_document(path)
 
-        # --------------------------------------------------
-        # Create stable document ID
-        # --------------------------------------------------
-
-        document_id = create_document_id(
-            str(path)
-        )
-
-        # --------------------------------------------------
-        # Calculate content hash
-        # --------------------------------------------------
-
-        content_hash = calculate_content_hash(
-            text
-        )
+        document_id = document.document_id
+        content_hash = document.content_hash
 
         print(
             f"Document ID: {document_id}"
@@ -96,6 +88,14 @@ class IngestionPipeline:
 
         print(
             f"Content Hash: {content_hash}"
+        )
+
+        print(
+            f"File Type: {document.file_type}"
+        )
+
+        print(
+            f"File Size: {document.file_size} bytes"
         )
 
         # --------------------------------------------------
@@ -183,11 +183,17 @@ class IngestionPipeline:
         # --------------------------------------------------
 
         chunks = chunk_text(
-            text,
+            document.text,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            source=str(path),
+            source=document.source,
         )
+
+        if not chunks:
+            raise ValueError(
+                f"No chunks were created for document: "
+                f"{path}"
+            )
 
         print(
             f"Created {len(chunks)} chunks."
@@ -204,6 +210,12 @@ class IngestionPipeline:
             ]
         )
 
+        if len(embeddings) != len(chunks):
+            raise ValueError(
+                "Embedding count does not match "
+                "chunk count."
+            )
+
         # --------------------------------------------------
         # Store in ChromaDB
         # --------------------------------------------------
@@ -217,6 +229,9 @@ class IngestionPipeline:
             embeddings=embeddings,
             document_id=document_id,
             content_hash=content_hash,
+            file_type=document.file_type,
+            file_size=document.file_size,
+            modified_time=document.modified_time,
         )
 
         print(
@@ -257,33 +272,32 @@ class IngestionPipeline:
             Document contains content already stored
             under another document.
 
+        FAILED:
+            Document could not be loaded or ingested.
+
         Unsupported files are ignored.
         """
 
-        directory_path = Path(
-            directory
-        )
+        directory_path = Path(directory)
 
         # --------------------------------------------------
         # Validate directory
         # --------------------------------------------------
 
         if not directory_path.exists():
-
             raise FileNotFoundError(
                 f"Directory does not exist: "
                 f"{directory_path}"
             )
 
         if not directory_path.is_dir():
-
             raise NotADirectoryError(
                 f"Path is not a directory: "
                 f"{directory_path}"
             )
 
         # --------------------------------------------------
-        # Find ALL files recursively
+        # Find all files recursively
         # --------------------------------------------------
 
         all_files = sorted(
@@ -333,7 +347,8 @@ class IngestionPipeline:
         )
 
         print(
-            f"Supported documents found: {len(files)}"
+            f"Supported documents found: "
+            f"{len(files)}"
         )
 
         print(
@@ -350,7 +365,8 @@ class IngestionPipeline:
             for file_path in ignored_files:
 
                 print(
-                    f"  - {file_path.relative_to(directory_path)}"
+                    f"  - "
+                    f"{file_path.relative_to(directory_path)}"
                 )
 
         # --------------------------------------------------
@@ -454,6 +470,8 @@ class IngestionPipeline:
                         f"{status}"
                     )
 
+                    stats.failed += 1
+
             except Exception as exc:
 
                 stats.failed += 1
@@ -477,6 +495,34 @@ class IngestionPipeline:
 
         print(
             "=" * 60
+        )
+
+        print(
+            f"Scanned:      {stats.scanned}"
+        )
+
+        print(
+            f"New:          {stats.new}"
+        )
+
+        print(
+            f"Unchanged:    {stats.unchanged}"
+        )
+
+        print(
+            f"Modified:     {stats.modified}"
+        )
+
+        print(
+            f"Deleted:      {stats.deleted}"
+        )
+
+        print(
+            f"Duplicates:   {stats.duplicates}"
+        )
+
+        print(
+            f"Failed:       {stats.failed}"
         )
 
         return stats
