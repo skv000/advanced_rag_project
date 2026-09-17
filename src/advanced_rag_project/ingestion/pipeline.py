@@ -233,10 +233,8 @@ class IngestionPipeline:
     ) -> IngestionStats:
         """
         Incrementally synchronize supported documents
-        in a directory with ChromaDB.
-
-        Supported files are controlled by
-        SUPPORTED_EXTENSIONS.
+        in a directory and all of its subdirectories
+        with ChromaDB.
 
         Handles:
 
@@ -258,6 +256,8 @@ class IngestionPipeline:
         DUPLICATE:
             Document contains content already stored
             under another document.
+
+        Unsupported files are ignored.
         """
 
         directory_path = Path(
@@ -283,12 +283,12 @@ class IngestionPipeline:
             )
 
         # --------------------------------------------------
-        # Find all files
+        # Find ALL files recursively
         # --------------------------------------------------
 
         all_files = sorted(
             path
-            for path in directory_path.iterdir()
+            for path in directory_path.rglob("*")
             if path.is_file()
         )
 
@@ -303,7 +303,7 @@ class IngestionPipeline:
         ]
 
         # --------------------------------------------------
-        # Display ignored files
+        # Find unsupported files
         # --------------------------------------------------
 
         ignored_files = [
@@ -350,7 +350,7 @@ class IngestionPipeline:
             for file_path in ignored_files:
 
                 print(
-                    f"  - {file_path.name}"
+                    f"  - {file_path.relative_to(directory_path)}"
                 )
 
         # --------------------------------------------------
