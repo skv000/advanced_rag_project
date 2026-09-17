@@ -75,3 +75,25 @@ class ChromaVectorStore:
         )
 
         return len(results["ids"]) > 0
+
+    def get_document_hash(self, document_id: str) -> str | None:
+        """
+        Get the stored content hash for a document.
+
+        Returns:
+            The stored content hash if the document exists.
+            None if the document does not exist.
+        """
+
+        results = self.collection.get(
+            where={
+                "document_id": document_id
+            },
+            limit=1,
+            include=["metadatas"],
+        )
+
+        if not results["metadatas"]:
+            return None
+
+        return results["metadatas"][0]["content_hash"]
