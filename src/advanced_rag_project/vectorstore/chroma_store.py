@@ -9,7 +9,9 @@ class ChromaVectorStore:
         persist_directory: str = "data/chroma",
         collection_name: str = "rag_documents",
     ):
-        self.client = chromadb.PersistentClient(path=persist_directory)
+        self.client = chromadb.PersistentClient(
+            path=persist_directory
+        )
 
         self.collection = self.client.get_or_create_collection(
             name=collection_name
@@ -61,10 +63,13 @@ class ChromaVectorStore:
             n_results=top_k,
         )
 
-    def document_exists(self, content_hash: str) -> bool:
+    def document_exists(
+        self,
+        content_hash: str,
+    ) -> bool:
         """
-        Check whether a document with the given content hash
-        already exists in ChromaDB.
+        Check whether a document with the given
+        content hash already exists in ChromaDB.
         """
 
         results = self.collection.get(
@@ -76,7 +81,10 @@ class ChromaVectorStore:
 
         return len(results["ids"]) > 0
 
-    def get_document_hash(self, document_id: str) -> str | None:
+    def get_document_hash(
+        self,
+        document_id: str,
+    ) -> str | None:
         """
         Get the stored content hash for a document.
 
@@ -98,7 +106,32 @@ class ChromaVectorStore:
 
         return results["metadatas"][0]["content_hash"]
 
-    def delete_document(self, document_id: str) -> None:
+    def get_document_ids(self) -> set[str]:
+        """
+        Get all unique document IDs currently stored
+        in ChromaDB.
+
+        Returns:
+            A set containing all document IDs.
+        """
+
+        results = self.collection.get(
+            include=["metadatas"]
+        )
+
+        document_ids = {
+            metadata["document_id"]
+            for metadata in results["metadatas"]
+            if metadata
+            and "document_id" in metadata
+        }
+
+        return document_ids
+
+    def delete_document(
+        self,
+        document_id: str,
+    ) -> None:
         """
         Delete all chunks belonging to a document.
         """
