@@ -60,19 +60,33 @@ class ChromaVectorStore:
             embeddings=embeddings,
             metadatas=metadatas,
         )
-        def search(
-            self,
-            query_embedding: list[float],
-            top_k: int = 3,
-        ) -> dict:
-            """
-            Search ChromaDB using a query embedding.
-            """
 
-            return self.collection.query(
-                query_embeddings=[query_embedding],
-                n_results=top_k,
-            )
+    def search(
+        self,
+        query_embedding,
+        top_k=3,
+        filters: dict | None = None,
+    ):
+        """
+        Search the vector store.
+
+        Parameters
+        ----------
+        query_embedding:
+            Query embedding vector.
+
+        top_k:
+            Number of results requested.
+
+        filters:
+            Optional Chroma metadata filter.
+        """
+
+        return self.collection.query(
+            query_embeddings=[query_embedding],
+            n_results=top_k,
+            where=filters,
+        )
 
     def document_exists(
         self,

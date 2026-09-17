@@ -1,0 +1,4 @@
+Python is a programming language.
+
+        Python is widely used for machine learning,
+        artificial intelligence, and web development.
