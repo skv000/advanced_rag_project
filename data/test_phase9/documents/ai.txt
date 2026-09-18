@@ -1,0 +1,8 @@
+Artificial intelligence is the field of building systems
+that can perform tasks requiring human-like reasoning.
+
+Machine learning allows systems to learn patterns from data.
+Deep learning uses neural networks to model complex patterns.
+
+Retrieval augmented generation combines information retrieval
+with language models to improve factual responses.

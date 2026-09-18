@@ -66,13 +66,7 @@ class HybridRetriever:
         )
 
     @staticmethod
-    def _normalize_scores(
-        results: list[RetrievalResult],
-    ) -> dict[str, float]:
-        """
-        Min-max normalize scores to 0-1.
-        """
-
+    def _normalize_scores(results):
         if not results:
             return {}
 
@@ -85,20 +79,19 @@ class HybridRetriever:
         maximum = max(scores)
 
         if maximum == minimum:
-
             return {
-                result.source: 1.0
+                (result.source, result.chunk_id): 1.0
                 for result in results
             }
 
         return {
-            result.source: (
+            (result.source, result.chunk_id): (
                 (result.similarity - minimum)
                 / (maximum - minimum)
             )
             for result in results
         }
-
+    
     def search(
         self,
         query: str,

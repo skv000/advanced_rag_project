@@ -1,0 +1,14 @@
+Retrieval augmented generation, commonly called RAG,
+combines a retrieval system with a generative language model.
+
+A RAG system first retrieves relevant documents or chunks.
+The retrieved context is then supplied to the language model.
+
+Dense vector retrieval uses embeddings to find semantically
+similar text.
+
+Keyword retrieval can identify exact terms in documents.
+Hybrid retrieval combines semantic and lexical signals.
+
+A reranker can then examine the query and retrieved passages
+together and produce a more accurate relevance ordering.
