@@ -182,7 +182,7 @@ class HybridRetriever:
                 "source": result.source,
                 "chunk_id": result.chunk_id,
                 "dense_score": dense_scores.get(
-                    result.source,
+                    key,
                     0.0,
                 ),
                 "keyword_score": 0.0,
@@ -209,7 +209,7 @@ class HybridRetriever:
             combined[key][
                 "keyword_score"
             ] = keyword_scores.get(
-                result.source,
+                key,
                 0.0,
             )
 

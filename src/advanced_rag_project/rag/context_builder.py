@@ -1,24 +1,27 @@
-from advanced_rag_project.documents.models import Chunk
+from advanced_rag_project.rag.context_engineering import (
+    ContextEngineer,
+)
 
 
 def build_context(
-    results: list[tuple[Chunk, float]]
+    results: list,
+    max_context_tokens: int = 1500,
+    min_score: float | None = None,
 ) -> str:
     """
-    Combine retrieved chunks into a single context string.
+    Build the final RAG context using the context engineering layer.
 
-    Each chunk includes metadata such as chunk ID
-    and source document.
+    This function remains as a simple compatibility wrapper around
+    ContextEngineer.
     """
 
-    context_parts = []
+    engineer = ContextEngineer(
+        max_context_tokens=max_context_tokens,
+        min_score=min_score,
+    )
 
-    for chunk, score in results:
-        context_parts.append(
-            f"[Source: {chunk.source} | "
-            f"Chunk ID: {chunk.chunk_id} | "
-            f"Similarity: {score:.4f}]\n"
-            f"{chunk.text}"
-        )
+    result = engineer.build(
+        results
+    )
 
-    return "\n\n".join(context_parts)
+    return result.context
