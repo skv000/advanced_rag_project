@@ -13,8 +13,10 @@ class ChromaVectorStore:
             path=persist_directory
         )
 
-        self.collection = self.client.get_or_create_collection(
-            name=collection_name
+        self.collection = (
+            self.client.get_or_create_collection(
+                name=collection_name
+            )
         )
 
     def add_chunks(
@@ -69,17 +71,6 @@ class ChromaVectorStore:
     ):
         """
         Search the vector store.
-
-        Parameters
-        ----------
-        query_embedding:
-            Query embedding vector.
-
-        top_k:
-            Number of results requested.
-
-        filters:
-            Optional Chroma metadata filter.
         """
 
         return self.collection.query(
@@ -112,10 +103,6 @@ class ChromaVectorStore:
     ) -> str | None:
         """
         Get the stored content hash for a document.
-
-        Returns:
-            The stored content hash if the document exists.
-            None if the document does not exist.
         """
 
         results = self.collection.get(
@@ -129,15 +116,14 @@ class ChromaVectorStore:
         if not results["metadatas"]:
             return None
 
-        return results["metadatas"][0]["content_hash"]
+        return results["metadatas"][0][
+            "content_hash"
+        ]
 
     def get_document_ids(self) -> set[str]:
         """
         Get all unique document IDs currently stored
         in ChromaDB.
-
-        Returns:
-            A set containing all document IDs.
         """
 
         results = self.collection.get(
@@ -152,6 +138,61 @@ class ChromaVectorStore:
         }
 
         return document_ids
+
+    def get_chunks(self) -> list[Chunk]:
+        """
+        Load all stored chunks from ChromaDB.
+
+        ChromaDB stores the chunk text as `documents`
+        and chunk metadata separately. This method
+        reconstructs the application's Chunk objects
+        from those persisted values.
+        """
+
+        results = self.collection.get(
+            include=[
+                "documents",
+                "metadatas",
+            ]
+        )
+
+        documents = results.get(
+            "documents",
+            [],
+        )
+
+        metadatas = results.get(
+            "metadatas",
+            [],
+        )
+
+        chunks = []
+
+        for document, metadata in zip(
+            documents,
+            metadatas,
+        ):
+            if not document or not metadata:
+                continue
+
+            chunks.append(
+                Chunk(
+                    text=document,
+                    chunk_id=int(
+                        metadata["chunk_id"]
+                    ),
+                    source=metadata["source"],
+                )
+            )
+
+        chunks.sort(
+            key=lambda chunk: (
+                chunk.source,
+                chunk.chunk_id,
+            )
+        )
+
+        return chunks
 
     def delete_document(
         self,
